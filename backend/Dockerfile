@@ -17,4 +17,4 @@ COPY . /app
 ENV PORT 8080
 
 # uvicorn으로 FastAPI 앱 실행
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:$PORT", "app.main:app"]
+CMD exec gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app --timeout 0 --workers 2
