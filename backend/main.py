@@ -1,17 +1,16 @@
-import os
+# main.py
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from .auth import router as auth_router
+import uvicorn
 
 app = FastAPI()
 
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI on Cloud Run!"}
+    return {"message": "안녕하세요! FastAPI와 Cloud Run 예제입니다."}
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int):
+    return {"item_id": item_id, "description": f"아이템 {item_id}에 대한 정보입니다."}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8080))  # Cloud Run에서 제공하는 PORT 사용
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
