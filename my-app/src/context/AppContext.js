@@ -65,11 +65,18 @@ export const AppProvider = ({ children }) => {
     fetchAppointments();
   }, [selectedDate]);
 
+  // 고객 선택 시 해당 고객의 메모 로드
+  useEffect(() => {
+    if (appointments[currentClientIndex]) {
+      setNoteContent(appointments[currentClientIndex].notes || "");
+    }
+  }, [appointments, currentClientIndex]); // currentClientIndex가 변경될 때마다 메모 업데이트
+
   // 고객 선택 함수
   const selectClient = (index) => {
     if (index >= 0 && index < appointments.length) {
       setCurrentClientIndex(index);
-      setNoteContent(appointments[index].notes || "");
+      // 메모 content는 위의 useEffect에서 처리하므로 여기서는 설정하지 않음
     }
   };
 

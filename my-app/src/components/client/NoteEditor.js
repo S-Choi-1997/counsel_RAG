@@ -11,7 +11,7 @@ function NoteEditor({ client = {}, noteContent = "", setNoteContent = () => {}, 
       </h3>
       
       <textarea
-        className="w-full border rounded-md p-3 h-full min-h-32 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+        className="w-full border rounded-md p-3 max-h-64 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm overflow-y-auto resize-none"
         value={noteContent}
         onChange={(e) => setNoteContent(e.target.value)}
         placeholder={`${client?.clientName || "고객"}님 상담 메모를 입력하세요...`}

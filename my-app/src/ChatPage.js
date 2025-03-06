@@ -18,17 +18,29 @@ import { useAppContext } from './context/AppContext';
 
 function ChatPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-  const { currentDate, selectedDate, calendarDays, handleDateSelect } = useCalendar();
-  const { appointments, currentClient, currentClientIndex, selectClient, saveNote, noteContent, setNoteContent } = useAppointments(selectedDate);
-  const { messages, input, setInput, handleSendMessage } = useChat();
-  const { getStatusColor, getPaymentColor } = useAppContext(); // 🔥 추가
+  const { user, loading: authLoading } = useAuth();
+  const { currentDate, selectedDate, calendarDays, handleDateSelect, goToPreviousMonth, goToNextMonth } = useCalendar();
   
-  useEffect(() => {
-    // 리디렉션 처리 로직은 useAuth 훅 내부로 이동
-  }, []);
+  // useAppointments에서는 메모 관련 상태를 가져오지 않음
+  const { 
+    appointments, 
+    currentClient, 
+    currentClientIndex, 
+    selectClient
+  } = useAppointments(selectedDate);
+  
+  const { messages, input, setInput, handleSendMessage } = useChat();
+  
+  // AppContext에서 메모 관련 상태와 함수 가져오기
+  const { 
+    noteContent, 
+    setNoteContent, 
+    saveNote, 
+    getStatusColor, 
+    getPaymentColor 
+  } = useAppContext();
 
- // ✅ 토큰이 없으면 로그인 페이지로 리디렉트
+  // ✅ 토큰이 없으면 로그인 페이지로 리디렉트
   useEffect(() => {
     const token = localStorage.getItem('token'); // 토큰 가져오기
     if (!token) {
@@ -36,7 +48,7 @@ function ChatPage() {
     }
   }, [navigate]);
 
-  if (loading) {
+  if (authLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>;
@@ -52,12 +64,16 @@ function ChatPage() {
             selectedDate={selectedDate}
             calendarDays={calendarDays}
             onDateSelect={handleDateSelect}
+            goToPreviousMonth={goToPreviousMonth}
+            goToNextMonth={goToNextMonth}
           />
           <AppointmentList 
             selectedDate={selectedDate}
             appointments={appointments}
             currentClientIndex={currentClientIndex}
             onClientSelect={selectClient}
+            getStatusColor={getStatusColor}
+            getPaymentColor={getPaymentColor}
           />
           <MonthlyStats />
         </>
@@ -67,15 +83,15 @@ function ChatPage() {
           <DateHeader currentDate={currentDate} appointmentsCount={appointments.length} />
           <ClientProfile 
             client={currentClient}
-            getStatusColor={getStatusColor}  // 🔥 추가
-            getPaymentColor={getPaymentColor} // 🔥 추가 /
-            />
+            getStatusColor={getStatusColor}
+            getPaymentColor={getPaymentColor}
+          />
           <ClientData />
           <NoteEditor 
             client={currentClient}
             noteContent={noteContent}
             setNoteContent={setNoteContent}
-            onSave={saveNote}
+            onSave={() => saveNote(noteContent)}
           />
         </>
       }

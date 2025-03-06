@@ -41,3 +41,17 @@ export const getClientAppointments = async (clientId) => {
     throw error;
   }
 };
+
+// appointmentService.js에 추가
+export const getMonthlyAppointments = async (startDate, endDate) => {
+  const formattedStartDate = formatDateToString(startDate);
+  const formattedEndDate = formatDateToString(endDate);
+  
+  try {
+    const response = await api.get(`/api/appointments/monthly?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching monthly appointments:', error);
+    throw error;
+  }
+};
