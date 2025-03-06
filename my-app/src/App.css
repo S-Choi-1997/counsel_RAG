@@ -1,0 +1,70 @@
+/* 로그인 페이지 전체 배경 */
+.login-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* 로그인 카드 스타일 */
+.login-container {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 350px;
+}
+
+/* 입력 필드 스타일 */
+.login-container input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* 로그인 버튼 */
+.login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.login-button:hover {
+  background-color: #0056b3;
+}
+
+/* 구글 로그인 버튼 */
+.google-login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #db4437;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.google-login-button:hover {
+  background-color: #c1351d;
+}
+
+/* 구분선 */
+hr {
+  margin: 20px 0;
+  border: 0;
+  height: 1px;
+  background: #ddd;
+}
