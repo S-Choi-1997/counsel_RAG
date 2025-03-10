@@ -5,9 +5,8 @@ import UserHeader from './components/layout/UserHeader';
 import MonthlyCalendar from './components/calendar/MonthlyCalendar';
 import AppointmentList from './components/calendar/AppointmentList';
 import MonthlyStats from './components/stats/MonthlyStats';
-import DateHeader from './components/client/DateHeader';
 import ClientProfile from './components/client/ClientProfile';
-import ClientData from './components/client/ClientData';
+import PreviousNotesList from './components/client/PreviousNotesList';
 import NoteEditor from './components/client/NoteEditor';
 import ChatInterface from './components/chat/ChatInterface';
 import { useAuth } from './hooks/useAuth';
@@ -34,12 +33,10 @@ function ChatPage() {
     currentClient, 
     currentClientIndex, 
     selectClient,
-    getStatusColor,
-    getPaymentColor,
     stats
   } = useAppContext();
   
-  const { messages, input, setInput, handleSend: handleSendMessage } = useChat();
+  const { messages, input, setInput, handleSend: handleSendMessage, loading: chatLoading } = useChat();
   
   // 현재 선택된 고객의 메모 관리를 위한 useNotes 훅 사용
   const { 
@@ -48,7 +45,8 @@ function ChatPage() {
     selectedNoteDate,
     setSelectedNoteDate,
     noteDates,
-    handleSaveNote
+    handleSaveNote,
+    loading: notesLoading
   } = useNotes(currentClient?.clientId);
 
   // 토큰이 없으면 로그인 페이지로 리디렉트
@@ -69,7 +67,11 @@ function ChatPage() {
     <DashboardLayout
       leftPanel={
         <>
-          <UserHeader user={user} currentDate={currentDate} />
+          <UserHeader 
+            user={user} 
+            currentDate={currentDate} 
+            appointmentsCount={appointments.length} 
+          />
           <MonthlyCalendar 
             currentDate={currentDate}
             selectedDate={selectedDate}
@@ -83,21 +85,18 @@ function ChatPage() {
             appointments={appointments}
             currentClientIndex={currentClientIndex}
             onClientSelect={selectClient}
-            getStatusColor={getStatusColor}
-            getPaymentColor={getPaymentColor}
           />
           <MonthlyStats stats={stats} />
         </>
       }
       middlePanel={
         <>
-          <DateHeader currentDate={currentDate} appointmentsCount={appointments.length} />
-          <ClientProfile 
-            client={currentClient}
-            getStatusColor={getStatusColor}
-            getPaymentColor={getPaymentColor}
+          <ClientProfile client={currentClient} />
+          <PreviousNotesList
+            noteDates={noteDates}
+            selectedNoteDate={selectedNoteDate}
+            onSelectNote={setSelectedNoteDate}
           />
-          <ClientData />
           <NoteEditor 
             client={currentClient}
             noteContent={noteContent}
@@ -115,6 +114,7 @@ function ChatPage() {
           input={input}
           setInput={setInput}
           handleSendMessage={handleSendMessage}
+          loading={chatLoading}
         />
       }
     />

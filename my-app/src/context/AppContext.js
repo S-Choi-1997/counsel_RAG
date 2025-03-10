@@ -38,44 +38,49 @@ export const AppProvider = ({ children }) => {
     const fetchAppointments = async () => {
       setLoading(true);
       try {
-        // 실제 API 호출 (개발 중에는 더미 데이터로 대체)
-        // const data = await getAppointmentsByDate(selectedDate);
-        // setAppointments(data);
-        
         // 더미 데이터 사용
         const dummyAppointments = [
           { 
             id: 1, 
             clientId: "client1",
-            time: "09:30", 
+            startTime: "09:30", 
+            endTime: "09:50",
             clientName: "김무이", 
-            type: "초기상담", 
-            status: "예약완료", 
-            payment: "결제완료",
-            history: "첫 상담 예정",
-            notes: ""
+            sessionType: "카톡상담", 
+            sessionDuration: "20분",
+            isCompleted: true, 
+            isNoteCompleted: true,
+            isPaid: true,
+            amount: "25900",
+            history: "첫 상담 예정"
           },
           { 
             id: 2, 
             clientId: "client2",
-            time: "11:00", 
+            startTime: "11:00", 
+            endTime: "11:30",
             clientName: "이지연", 
-            type: "정기상담", 
-            status: "예약완료", 
-            payment: "결제완료",
-            history: "이전 상담: 업무 스트레스 관련 논의",
-            notes: ""
+            sessionType: "전화상담", 
+            sessionDuration: "30분",
+            isCompleted: true, 
+            isNoteCompleted: false,
+            isPaid: true,
+            amount: "44900",
+            history: "이전 상담: 업무 스트레스 관련 논의"
           },
           { 
             id: 3, 
             clientId: "client3",
-            time: "14:30", 
+            startTime: "14:30", 
+            endTime: "14:50",
             clientName: "박준혁", 
-            type: "정기상담", 
-            status: "예약완료", 
-            payment: "미결제",
-            history: "이전 상담: 가족 관계 개선 논의",
-            notes: ""
+            sessionType: "전화상담", 
+            sessionDuration: "20분",
+            isCompleted: false, 
+            isNoteCompleted: false,
+            isPaid: false,
+            amount: "29900",
+            history: "이전 상담: 가족 관계 개선 논의"
           }
         ];
         
@@ -93,28 +98,28 @@ export const AppProvider = ({ children }) => {
     fetchAppointments();
   }, [selectedDate]);
 
-// 동기화 상태 주기적 확인 (5분마다)
-useEffect(() => {
-  const checkSyncStatus = async () => {
-    try {
-      const status = await getSyncStatus();
-      setSyncState(status);
-    } catch (err) {
-      console.error('Failed to get sync status:', err);
-    }
-  };
-  
-  // 토큰이 있을 때만 동기화 상태를 확인
-  const token = localStorage.getItem('token');
-  if (token) {
-    // 초기 로드
-    checkSyncStatus();
+  // 동기화 상태 주기적 확인 (5분마다)
+  useEffect(() => {
+    const checkSyncStatus = async () => {
+      try {
+        const status = await getSyncStatus();
+        setSyncState(status);
+      } catch (err) {
+        console.error('Failed to get sync status:', err);
+      }
+    };
     
-    // 5분마다 업데이트
-    const interval = setInterval(checkSyncStatus, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }
-}, []);
+    // 토큰이 있을 때만 동기화 상태를 확인
+    const token = localStorage.getItem('token');
+    if (token) {
+      // 초기 로드
+      checkSyncStatus();
+      
+      // 5분마다 업데이트
+      const interval = setInterval(checkSyncStatus, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   // 고객 선택 함수
   const selectClient = (index) => {
@@ -128,24 +133,37 @@ useEffect(() => {
     setSelectedDate(date);
   };
 
-  // 상태 색상 지정 함수
-  const getStatusColor = (status) => {
-    switch(status) {
-      case "진행중": return "bg-green-100 text-green-800";
-      case "완료": return "bg-gray-100 text-gray-800";
-      case "예약완료": return "bg-blue-100 text-blue-800";
-      case "취소": return "bg-red-100 text-red-800";
-      default: return "bg-yellow-100 text-yellow-800";
+  // 상담 종류에 따른 색상 및 스타일 지정
+  const getSessionTypeStyle = (sessionType) => {
+    switch(sessionType) {
+      case "카톡상담": return "bg-yellow-100 text-yellow-800";
+      case "전화상담": return "bg-pink-100 text-pink-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
   
+  // 상담 완료 상태 색상
+  const getCompletionStatusColor = (isCompleted) => {
+    return isCompleted ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
+  };
+  
+  // 상담 정리 상태 색상
+  const getNoteStatusColor = (isNoteCompleted) => {
+    return isNoteCompleted ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
+  };
+  
   // 결제 상태 색상 지정 함수
-  const getPaymentColor = (payment) => {
-    switch(payment) {
-      case "결제완료": return "bg-green-100 text-green-800";
-      case "미결제": return "bg-red-100 text-red-800";
-      default: return "bg-yellow-100 text-yellow-800";
-    }
+  const getPaymentStatusColor = (isPaid) => {
+    return isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+  };
+
+  // 예약 상태 업데이트 함수
+  const updateAppointment = (appointmentId, updatedData) => {
+    setAppointments(prevAppointments => 
+      prevAppointments.map(apt => 
+        apt.id === appointmentId ? { ...apt, ...updatedData } : apt
+      )
+    );
   };
 
   const value = {
@@ -160,8 +178,11 @@ useEffect(() => {
     syncState,
     selectClient,
     selectDate,
-    getStatusColor,
-    getPaymentColor,
+    getSessionTypeStyle,
+    getCompletionStatusColor,
+    getNoteStatusColor,
+    getPaymentStatusColor,
+    updateAppointment,
     setSyncState
   };
 

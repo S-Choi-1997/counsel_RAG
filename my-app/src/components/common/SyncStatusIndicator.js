@@ -2,7 +2,7 @@ import React from 'react';
 import { triggerFullSync } from '../../services/googleService';
 
 function SyncStatusIndicator({ syncState }) {
-  const { calendarConnected, sheetsConnected, lastCalendarSync, lastSheetsSync, isSyncing } = syncState;
+  const { calendarConnected, sheetsConnected, lastCalendarSync, lastSheetsSync, isSyncing } = syncState || {};
   
   const handleSyncClick = async () => {
     if (isSyncing) return; // 이미 동기화 중이면 무시
@@ -54,6 +54,8 @@ function SyncStatusIndicator({ syncState }) {
 
 // 동기화 시간을 상대적으로 표시 (예: "5분 전")
 function formatSyncTime(timestamp) {
+  if (!timestamp) return '';
+  
   const now = new Date();
   const syncTime = new Date(timestamp);
   const diffInMinutes = Math.floor((now - syncTime) / (1000 * 60));
