@@ -11,40 +11,51 @@ import ClientData from './components/client/ClientData';
 import NoteEditor from './components/client/NoteEditor';
 import ChatInterface from './components/chat/ChatInterface';
 import { useAuth } from './hooks/useAuth';
-import { useAppointments } from './hooks/useAppointments';
 import useCalendar from './hooks/useCalendar';
 import { useChat } from './hooks/useChat';
 import { useAppContext } from './context/AppContext';
+import { useNotes } from './hooks/useNotes';
 
 function ChatPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { currentDate, selectedDate, calendarDays, handleDateSelect, goToPreviousMonth, goToNextMonth } = useCalendar();
+  const { 
+    currentDate, 
+    selectedDate, 
+    calendarDays, 
+    handleDateSelect, 
+    goToPreviousMonth, 
+    goToNextMonth 
+  } = useCalendar();
   
-  // useAppointments에서는 메모 관련 상태를 가져오지 않음
+  // useAppContext를 컴포넌트 최상위 레벨에서 한 번만 호출
   const { 
     appointments, 
     currentClient, 
     currentClientIndex, 
-    selectClient
-  } = useAppointments(selectedDate);
+    selectClient,
+    getStatusColor,
+    getPaymentColor,
+    stats
+  } = useAppContext();
   
-  const { messages, input, setInput, handleSendMessage } = useChat();
+  const { messages, input, setInput, handleSend: handleSendMessage } = useChat();
   
-  // AppContext에서 메모 관련 상태와 함수 가져오기
+  // 현재 선택된 고객의 메모 관리를 위한 useNotes 훅 사용
   const { 
     noteContent, 
     setNoteContent, 
-    saveNote, 
-    getStatusColor, 
-    getPaymentColor 
-  } = useAppContext();
+    selectedNoteDate,
+    setSelectedNoteDate,
+    noteDates,
+    handleSaveNote
+  } = useNotes(currentClient?.clientId);
 
-  // ✅ 토큰이 없으면 로그인 페이지로 리디렉트
+  // 토큰이 없으면 로그인 페이지로 리디렉트
   useEffect(() => {
-    const token = localStorage.getItem('token'); // 토큰 가져오기
+    const token = localStorage.getItem('token');
     if (!token) {
-      //navigate('/login'); // 🔥 토큰이 없으면 로그인 페이지로 이동
+      navigate('/login');
     }
   }, [navigate]);
 
@@ -75,7 +86,7 @@ function ChatPage() {
             getStatusColor={getStatusColor}
             getPaymentColor={getPaymentColor}
           />
-          <MonthlyStats />
+          <MonthlyStats stats={stats} />
         </>
       }
       middlePanel={
@@ -91,7 +102,10 @@ function ChatPage() {
             client={currentClient}
             noteContent={noteContent}
             setNoteContent={setNoteContent}
-            onSave={() => saveNote(noteContent)}
+            onSave={handleSaveNote}
+            selectedNoteDate={selectedNoteDate}
+            onDateSelect={setSelectedNoteDate}
+            noteDates={noteDates}
           />
         </>
       }

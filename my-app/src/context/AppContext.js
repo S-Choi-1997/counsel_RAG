@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getAppointmentsByDate } from '../services/appointmentService';
-import { formatDateToString } from '../utils/dateUtils';
+import { getSyncStatus } from '../services/googleService';
 
 // 컨텍스트 생성
 const AppContext = createContext();
@@ -12,12 +11,20 @@ export const AppProvider = ({ children }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
   const [currentClientIndex, setCurrentClientIndex] = useState(0);
-  const [noteContent, setNoteContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // 동기화 관련 상태 추가
+  const [syncState, setSyncState] = useState({
+    calendarConnected: false,
+    sheetsConnected: false,
+    lastCalendarSync: null,
+    lastSheetsSync: null,
+    isSyncing: false
+  });
+
   // 월별 통계 데이터
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalClients: 28,
     newClients: 8,
     completedSessions: 42,
@@ -39,6 +46,7 @@ export const AppProvider = ({ children }) => {
         const dummyAppointments = [
           { 
             id: 1, 
+            clientId: "client1",
             time: "09:30", 
             clientName: "김무이", 
             type: "초기상담", 
@@ -47,12 +55,32 @@ export const AppProvider = ({ children }) => {
             history: "첫 상담 예정",
             notes: ""
           },
-          // 기타 더미 데이터
+          { 
+            id: 2, 
+            clientId: "client2",
+            time: "11:00", 
+            clientName: "이지연", 
+            type: "정기상담", 
+            status: "예약완료", 
+            payment: "결제완료",
+            history: "이전 상담: 업무 스트레스 관련 논의",
+            notes: ""
+          },
+          { 
+            id: 3, 
+            clientId: "client3",
+            time: "14:30", 
+            clientName: "박준혁", 
+            type: "정기상담", 
+            status: "예약완료", 
+            payment: "미결제",
+            history: "이전 상담: 가족 관계 개선 논의",
+            notes: ""
+          }
         ];
         
         setAppointments(dummyAppointments);
         setCurrentClientIndex(0);
-        setNoteContent(dummyAppointments[0]?.notes || "");
         setError(null);
       } catch (err) {
         setError('예약 정보를 불러오는 중 오류가 발생했습니다.');
@@ -65,40 +93,36 @@ export const AppProvider = ({ children }) => {
     fetchAppointments();
   }, [selectedDate]);
 
-  // 고객 선택 시 해당 고객의 메모 로드
+  // 동기화 상태 주기적 확인 (5분마다)
   useEffect(() => {
-    if (appointments[currentClientIndex]) {
-      setNoteContent(appointments[currentClientIndex].notes || "");
-    }
-  }, [appointments, currentClientIndex]); // currentClientIndex가 변경될 때마다 메모 업데이트
+    const checkSyncStatus = async () => {
+      try {
+        const status = await getSyncStatus();
+        setSyncState(status);
+      } catch (err) {
+        console.error('Failed to get sync status:', err);
+      }
+    };
+    
+    // 초기 로드
+    checkSyncStatus();
+    
+    // 5분마다 업데이트
+    const interval = setInterval(checkSyncStatus, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // 고객 선택 함수
   const selectClient = (index) => {
     if (index >= 0 && index < appointments.length) {
       setCurrentClientIndex(index);
-      // 메모 content는 위의 useEffect에서 처리하므로 여기서는 설정하지 않음
     }
   };
 
   // 날짜 선택 함수
   const selectDate = (date) => {
     setSelectedDate(date);
-  };
-
-  // 메모 저장 함수
-  const saveNote = (content) => {
-    if (appointments.length === 0) return;
-    
-    const updatedAppointments = [...appointments];
-    updatedAppointments[currentClientIndex] = {
-      ...updatedAppointments[currentClientIndex],
-      notes: content
-    };
-    
-    setAppointments(updatedAppointments);
-    
-    // 실제 API 호출은 여기에 구현
-    // saveAppointmentNote(appointments[currentClientIndex].id, content);
   };
 
   // 상태 색상 지정 함수
@@ -127,16 +151,15 @@ export const AppProvider = ({ children }) => {
     appointments,
     currentClientIndex,
     currentClient: appointments[currentClientIndex] || null,
-    noteContent,
     stats,
     loading,
     error,
-    setNoteContent,
+    syncState,
     selectClient,
     selectDate,
-    saveNote,
     getStatusColor,
-    getPaymentColor
+    getPaymentColor,
+    setSyncState
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
