@@ -93,25 +93,28 @@ export const AppProvider = ({ children }) => {
     fetchAppointments();
   }, [selectedDate]);
 
-  // 동기화 상태 주기적 확인 (5분마다)
-  useEffect(() => {
-    const checkSyncStatus = async () => {
-      try {
-        const status = await getSyncStatus();
-        setSyncState(status);
-      } catch (err) {
-        console.error('Failed to get sync status:', err);
-      }
-    };
-    
+// 동기화 상태 주기적 확인 (5분마다)
+useEffect(() => {
+  const checkSyncStatus = async () => {
+    try {
+      const status = await getSyncStatus();
+      setSyncState(status);
+    } catch (err) {
+      console.error('Failed to get sync status:', err);
+    }
+  };
+  
+  // 토큰이 있을 때만 동기화 상태를 확인
+  const token = localStorage.getItem('token');
+  if (token) {
     // 초기 로드
     checkSyncStatus();
     
     // 5분마다 업데이트
     const interval = setInterval(checkSyncStatus, 5 * 60 * 1000);
-    
     return () => clearInterval(interval);
-  }, []);
+  }
+}, []);
 
   // 고객 선택 함수
   const selectClient = (index) => {
