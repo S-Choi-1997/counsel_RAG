@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 
 function ClientProfile({ client }) {
+  const [isEditMode, setIsEditMode] = useState(false);
   const [amount, setAmount] = useState("");
   const [isPaid, setIsPaid] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -36,19 +37,28 @@ function ClientProfile({ client }) {
       setSessionDuration(client.sessionDuration || "20분");
       setStartTime(client.startTime || "");
       setEndTime(client.endTime || "");
+      
+      // 새 고객을 선택하면 편집 모드 종료
+      setIsEditMode(false);
     }
   }, [client]);
 
-  // 결제 정보 저장
-  const handleSavePayment = async () => {
+  // 모든 정보 저장
+  const handleSaveAll = async () => {
     if (!client || !client.id) return;
     
     setIsSaving(true);
     try {
-      // 결제 정보 업데이트
+      // 모든 정보 업데이트
       updateAppointment(client.id, {
         amount,
-        isPaid
+        isPaid,
+        isCompleted,
+        isNoteCompleted,
+        sessionType,
+        sessionDuration,
+        startTime,
+        endTime
       });
       
       setSaveSuccess(true);
@@ -57,62 +67,24 @@ function ClientProfile({ client }) {
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
-    } catch (error) {
-      console.error("결제 정보 저장 실패:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 상담 상태 업데이트
-  const handleUpdateSessionInfo = async () => {
-    if (!client || !client.id) return;
-    
-    setIsSaving(true);
-    try {
-      updateAppointment(client.id, {
-        sessionType,
-        sessionDuration,
-        startTime,
-        endTime
-      });
       
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // 편집 모드 종료
+      setIsEditMode(false);
     } catch (error) {
-      console.error("상담 정보 업데이트 실패:", error);
+      console.error("정보 저장 실패:", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // 상담 완료 상태 변경
-  const handleCompletionToggle = () => {
-    const newStatus = !isCompleted;
-    setIsCompleted(newStatus);
-    
-    if (client && client.id) {
-      updateAppointment(client.id, { isCompleted: newStatus });
-    }
-  };
-
-  // 상담 정리 상태 변경
-  const handleNoteCompletionToggle = () => {
-    const newStatus = !isNoteCompleted;
-    setIsNoteCompleted(newStatus);
-    
-    if (client && client.id) {
-      updateAppointment(client.id, { isNoteCompleted: newStatus });
-    }
-  };
-
-  // 결제 상태 변경
-  const handlePaymentStatusToggle = () => {
-    const newStatus = !isPaid;
-    setIsPaid(newStatus);
-    
-    if (client && client.id) {
-      updateAppointment(client.id, { isPaid: newStatus });
+  // 편집 모드 토글
+  const toggleEditMode = () => {
+    if (isEditMode && !isSaving) {
+      // 편집 모드에서 일반 모드로 변경 시 저장
+      handleSaveAll();
+    } else {
+      // 일반 모드에서 편집 모드로 변경
+      setIsEditMode(true);
     }
   };
 
@@ -126,12 +98,26 @@ function ClientProfile({ client }) {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 flex-shrink-0">
-      <h3 className="text-lg font-semibold mb-3 flex items-center">
-        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        현재 고객 정보
-      </h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-semibold flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          현재 고객 정보
+        </h3>
+        
+        <button 
+          onClick={toggleEditMode}
+          className={`px-3 py-1 text-sm rounded ${
+            isEditMode 
+              ? 'bg-green-500 hover:bg-green-600 text-white' 
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
+          disabled={isSaving}
+        >
+          {isSaving ? "저장 중..." : isEditMode ? "저장" : "수정"}
+        </button>
+      </div>
       
       <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
         <div className="flex items-center justify-between mb-3">
@@ -141,140 +127,147 @@ function ClientProfile({ client }) {
             </div>
             <div>
               <h4 className="font-bold text-lg">{client.clientName}</h4>
-              <div className="flex items-center space-x-2">
-                <select 
-                  value={sessionType}
-                  onChange={(e) => setSessionType(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-1"
-                >
-                  {sessionTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-                <select 
-                  value={sessionDuration}
-                  onChange={(e) => setSessionDuration(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-1"
-                >
-                  {durationOptions.map(duration => (
-                    <option key={duration} value={duration}>{duration}</option>
-                  ))}
-                </select>
-                <button 
-                  onClick={handleUpdateSessionInfo}
-                  className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded hover:bg-blue-600"
-                >
-                  변경
-                </button>
-              </div>
+              {isEditMode ? (
+                <div className="flex items-center space-x-2">
+                  <select 
+                    value={sessionType}
+                    onChange={(e) => setSessionType(e.target.value)}
+                    className="text-sm border border-gray-300 rounded px-1"
+                  >
+                    {sessionTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <select 
+                    value={sessionDuration}
+                    onChange={(e) => setSessionDuration(e.target.value)}
+                    className="text-sm border border-gray-300 rounded px-1"
+                  >
+                    {durationOptions.map(duration => (
+                      <option key={duration} value={duration}>{duration}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex flex-col mt-1">
+                  <span className={`text-xs px-2 py-1 inline-block rounded-full w-fit ${getSessionTypeStyle(sessionType)}`}>
+                    {sessionType} {sessionDuration}
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="flex flex-col space-y-1">
-            <span className={`text-xs px-2 py-1 rounded-full ${getSessionTypeStyle(sessionType)}`}>
-              {sessionType} {sessionDuration}
-            </span>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-white p-2 rounded border border-gray-200">
             <p className="text-xs font-medium text-gray-500">예약 시간</p>
-            <div className="flex items-center mt-1">
-              <input 
-                type="text" 
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-16 text-sm p-1 border rounded"
-                placeholder="00:00"
-              />
-              <span className="mx-1">→</span>
-              <input 
-                type="text" 
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-16 text-sm p-1 border rounded"
-                placeholder="00:00"
-              />
-              <button 
-                className="ml-1 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded hover:bg-blue-600"
-                onClick={handleUpdateSessionInfo}
-              >
-                저장
-              </button>
-            </div>
+            {isEditMode ? (
+              <div className="flex items-center mt-1">
+                <input 
+                  type="text" 
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-16 text-sm p-1 border rounded"
+                  placeholder="00:00"
+                />
+                <span className="mx-1">→</span>
+                <input 
+                  type="text" 
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-16 text-sm p-1 border rounded"
+                  placeholder="00:00"
+                />
+              </div>
+            ) : (
+              <p className="font-medium">{startTime} → {endTime}</p>
+            )}
           </div>
           <div className="bg-white p-2 rounded border border-gray-200">
-            <div className="flex flex-col space-y-1">
+            <div className="flex flex-col">
               <div className="flex justify-between items-center">
                 <p className="text-xs font-medium text-gray-500">상담 완료</p>
-                <div 
-                  onClick={handleCompletionToggle}
-                  className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
-                    isCompleted ? "bg-green-400" : "bg-gray-300"
-                  }`}
-                >
-                  <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
-                    isCompleted ? "translate-x-5" : ""
-                  }`} />
-                </div>
+                {isEditMode ? (
+                  <div 
+                    onClick={() => setIsCompleted(!isCompleted)}
+                    className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
+                      isCompleted ? "bg-green-400" : "bg-gray-300"
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
+                      isCompleted ? "translate-x-5" : ""
+                    }`} />
+                  </div>
+                ) : (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    getCompletionStatusColor(isCompleted)
+                  }`}>
+                    {isCompleted ? "완료" : "미완료"}
+                  </span>
+                )}
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mt-2">
                 <p className="text-xs font-medium text-gray-500">상담 정리</p>
-                <div 
-                  onClick={handleNoteCompletionToggle}
-                  className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
-                    isNoteCompleted ? "bg-green-400" : "bg-gray-300"
-                  }`}
-                >
-                  <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
-                    isNoteCompleted ? "translate-x-5" : ""
-                  }`} />
-                </div>
+                {isEditMode ? (
+                  <div 
+                    onClick={() => setIsNoteCompleted(!isNoteCompleted)}
+                    className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
+                      isNoteCompleted ? "bg-green-400" : "bg-gray-300"
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
+                      isNoteCompleted ? "translate-x-5" : ""
+                    }`} />
+                  </div>
+                ) : (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    getNoteStatusColor(isNoteCompleted)
+                  }`}>
+                    {isNoteCompleted ? "완료" : "미완료"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <div className="bg-white p-2 rounded border border-gray-200">
-            <div className="flex justify-between items-center">
-              <input 
-                type="text" 
-                value={amount} 
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-2/3 text-sm p-1 border rounded"
-                placeholder="결제 금액"
-              />
-              <div 
-                onClick={handlePaymentStatusToggle}
-                className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
-                  isPaid ? "bg-green-400" : "bg-gray-300"
-                }`}
-              >
-                <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
-                  isPaid ? "translate-x-5" : ""
-                }`} />
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center">
+                <p className="text-xs font-medium text-gray-500">결제 금액</p>
+                {isEditMode ? (
+                  <input 
+                    type="text" 
+                    value={amount} 
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-24 text-sm p-1 border rounded text-right"
+                    placeholder="금액 입력"
+                  />
+                ) : (
+                  <p className="font-medium text-right">{amount}원</p>
+                )}
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs font-medium text-gray-500">결제 상태</p>
+                {isEditMode ? (
+                  <div 
+                    onClick={() => setIsPaid(!isPaid)}
+                    className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer ${
+                      isPaid ? "bg-green-400" : "bg-gray-300"
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full bg-white transform transition-transform duration-300 ${
+                      isPaid ? "translate-x-5" : ""
+                    }`} />
+                  </div>
+                ) : (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    getPaymentStatusColor(isPaid)
+                  }`}>
+                    {isPaid ? "결제완료" : "미결제"}
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex justify-between mt-1">
-              <p className="text-xs font-medium text-gray-500">결제 금액</p>
-              <div className="flex items-center">
-                <span className={`text-xs px-1.5 py-0.5 rounded-full mr-1 ${
-                  getPaymentStatusColor(isPaid)
-                }`}>
-                  {isPaid ? "결제완료" : "미결제"}
-                </span>
-                <button 
-                  onClick={handleSavePayment} 
-                  disabled={isSaving}
-                  className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded hover:bg-blue-600"
-                >
-                  {isSaving ? "저장 중..." : "저장"}
-                </button>
-              </div>
-            </div>
-            {saveSuccess && (
-              <p className="text-xs text-green-600 mt-1 text-right">
-                정보가 저장되었습니다!
-              </p>
-            )}
           </div>
           <div className="bg-white p-2 rounded border border-gray-200">
             <p className="text-xs font-medium text-gray-500">상담 회차</p>
@@ -283,19 +276,32 @@ function ClientProfile({ client }) {
         </div>
         
         {/* 고객 데이터 */}
-        <ClientInfo />
+        <ClientInfo isEditMode={isEditMode} />
+        
+        {saveSuccess && (
+          <div className="mt-2 bg-green-100 border border-green-300 text-green-700 px-3 py-2 rounded text-sm">
+            모든 정보가 성공적으로 저장되었습니다!
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // 고객 정보 컴포넌트
-function ClientInfo() {
-  const clientData = {
+function ClientInfo({ isEditMode }) {
+  const [clientData, setClientData] = useState({
     age: "30대",
     occupation: "회사원",
     goal: "직장 스트레스 관리",
     note: "불면증 호소, 업무 과부하"
+  });
+
+  const handleChange = (field, value) => {
+    setClientData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -305,19 +311,63 @@ function ClientInfo() {
         <tbody>
           <tr className="border-b">
             <td className="py-1 font-medium text-gray-500 w-1/4">연령대</td>
-            <td className="py-1">{clientData.age}</td>
+            <td className="py-1">
+              {isEditMode ? (
+                <input 
+                  type="text" 
+                  value={clientData.age} 
+                  onChange={(e) => handleChange('age', e.target.value)}
+                  className="w-full text-sm p-1 border rounded"
+                />
+              ) : (
+                clientData.age
+              )}
+            </td>
           </tr>
           <tr className="border-b">
             <td className="py-1 font-medium text-gray-500">직업</td>
-            <td className="py-1">{clientData.occupation}</td>
+            <td className="py-1">
+              {isEditMode ? (
+                <input 
+                  type="text" 
+                  value={clientData.occupation} 
+                  onChange={(e) => handleChange('occupation', e.target.value)}
+                  className="w-full text-sm p-1 border rounded"
+                />
+              ) : (
+                clientData.occupation
+              )}
+            </td>
           </tr>
           <tr className="border-b">
             <td className="py-1 font-medium text-gray-500">상담 목표</td>
-            <td className="py-1">{clientData.goal}</td>
+            <td className="py-1">
+              {isEditMode ? (
+                <input 
+                  type="text" 
+                  value={clientData.goal} 
+                  onChange={(e) => handleChange('goal', e.target.value)}
+                  className="w-full text-sm p-1 border rounded"
+                />
+              ) : (
+                clientData.goal
+              )}
+            </td>
           </tr>
           <tr>
             <td className="py-1 font-medium text-gray-500">특이사항</td>
-            <td className="py-1">{clientData.note}</td>
+            <td className="py-1">
+              {isEditMode ? (
+                <input 
+                  type="text" 
+                  value={clientData.note} 
+                  onChange={(e) => handleChange('note', e.target.value)}
+                  className="w-full text-sm p-1 border rounded"
+                />
+              ) : (
+                clientData.note
+              )}
+            </td>
           </tr>
         </tbody>
       </table>
