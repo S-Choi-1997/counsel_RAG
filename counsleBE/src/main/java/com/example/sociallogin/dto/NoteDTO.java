@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -21,8 +22,21 @@ public class NoteDTO {
     private String date; // ISO 형식 문자열 (YYYY-MM-DD)
     private String content;
     private String summary;
+
+    // 선택적 필드 (프론트엔드에서 당장 사용하지 않지만 유지)
     private List<String> tags;
     private List<String> actionItems;
+
+    // 프론트엔드 간소화를 위한 팩토리 메서드 추가
+    public static NoteDTO createSimple(String clientId, String date, String content) {
+        return NoteDTO.builder()
+                .clientId(clientId)
+                .date(date)
+                .content(content)
+                .tags(new ArrayList<>())
+                .actionItems(new ArrayList<>())
+                .build();
+    }
 
     // Entity에서 DTO로 변환
     public static NoteDTO fromEntity(Note note) {

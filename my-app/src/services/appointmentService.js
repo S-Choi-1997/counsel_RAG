@@ -1,5 +1,7 @@
-import {api} from './api';
+// src/services/appointmentService.js
+import { api } from './api';
 import { formatDateToString } from '../utils/dateUtils';
+import { getDummyAppointmentsByDate } from '../utils/fallbackData';
 
 export const getAppointmentsByDate = async (date) => {
   const formattedDate = formatDateToString(date);
@@ -8,6 +10,13 @@ export const getAppointmentsByDate = async (date) => {
     return response;
   } catch (error) {
     console.error('Error fetching appointments:', error);
+    
+    // 네트워크 오류인 경우 더미 데이터 반환
+    if (error.isNetworkError) {
+      console.log('Network error, using fallback appointment data');
+      return getDummyAppointmentsByDate(date);
+    }
+    
     throw error;
   }
 };
@@ -52,6 +61,24 @@ export const getMonthlyAppointments = async (startDate, endDate) => {
     return response;
   } catch (error) {
     console.error('Error fetching monthly appointments:', error);
+    
+    // 네트워크 오류인 경우 더미 데이터 반환
+    if (error.isNetworkError) {
+      console.log('Network error, using fallback monthly appointment data');
+      // 날짜 범위에 맞는 더미 데이터 생성 (실제 구현 필요)
+      return getDummyAppointmentsByDate(startDate);
+    }
+    
+    throw error;
+  }
+};
+
+export const deleteAppointment = async (appointmentId) => {
+  try {
+    await api.delete(`/api/appointments/${appointmentId}`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
     throw error;
   }
 };

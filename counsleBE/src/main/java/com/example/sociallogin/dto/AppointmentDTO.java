@@ -21,19 +21,28 @@ public class AppointmentDTO {
     private String clientName;
     private String counselorId;
     private String counselorName;
-    private String date; // ISO 형식의 날짜 문자열 (YYYY-MM-DD)
+    private String date; // ISO 형식 (YYYY-MM-DD)
     private String startTime; // HH:MM 형식
     private String endTime; // HH:MM 형식
-    private String status;
-    private String notes;
-    private String serviceType;
-    private String sessionDuration; // 추가: 세션 시간 (예: "20분", "30분")
-    private Boolean isCompleted; // 추가: 상담 완료 여부
-    private Boolean isNoteCompleted; // 추가: 메모 완료 여부
-    private Boolean isPaid; // 추가: 결제 완료 여부
-    private String amount; // 추가: 결제 금액
 
-    // Entity에서 DTO로 변환
+    // status에서 isCompleted로 변환되는 필드
+    private String status; // "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"
+    private Boolean isCompleted; // status가 "COMPLETED"인 경우 true
+
+    private String notes;
+
+    // serviceType → sessionType으로 변경 (프론트엔드 네이밍 반영)
+    private String sessionType; // "카톡상담", "전화상담" 등
+    private String sessionDuration; // "20분", "30분" 등
+
+    private Boolean isNoteCompleted; // 메모 완료 여부
+    private Boolean isPaid; // 결제 완료 여부
+    private String amount; // 결제 금액
+
+    // 프론트엔드에서 필요한 history 필드 추가
+    private String history; // 이전 상담 정보 요약
+
+    // Entity에서 DTO로 변환 메서드 업데이트
     public static AppointmentDTO fromEntity(Appointment appointment) {
         AppointmentDTO dto = AppointmentDTO.builder()
                 .id(appointment.getId())
@@ -46,27 +55,29 @@ public class AppointmentDTO {
                 .endTime(appointment.getEndTime().toString())
                 .status(appointment.getStatus())
                 .notes(appointment.getNotes())
-                .serviceType(appointment.getServiceType())
+                .sessionType(appointment.getServiceType()) // serviceType → sessionType 매핑
                 .build();
 
         // 상태 값에 따라 불리언 필드 설정
         dto.setIsCompleted("COMPLETED".equals(appointment.getStatus()));
-        dto.setIsNoteCompleted(false); // 기본값, 메모 상태는 별도로 확인 필요
-        dto.setIsPaid(false); // 기본값, 결제 상태는 별도로 확인 필요
 
-        // 세션 시간 추출 (시작시간과 종료시간의 차이)
+        // 세션 시간 계산
         LocalTime start = appointment.getStartTime();
         LocalTime end = appointment.getEndTime();
         int durationMinutes = (end.getHour() * 60 + end.getMinute()) -
                 (start.getHour() * 60 + start.getMinute());
-
         dto.setSessionDuration(durationMinutes + "분");
-        dto.setAmount("0"); // 기본값, 결제 정보는 별도로 조회 필요
+
+        // 기본값 설정
+        dto.setIsNoteCompleted(false);
+        dto.setIsPaid(false);
+        dto.setAmount("0");
+        dto.setHistory("");
 
         return dto;
     }
 
-    // DTO에서 Entity로 변환
+    // DTO에서 Entity로 변환 메서드 업데이트
     public Appointment toEntity() {
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -81,7 +92,7 @@ public class AppointmentDTO {
                 .endTime(LocalTime.parse(this.endTime, timeFormatter))
                 .status(this.status)
                 .notes(this.notes)
-                .serviceType(this.serviceType)
+                .serviceType(this.sessionType) // sessionType → serviceType 매핑
                 .createdAt(new Date())
                 .updatedAt(new Date())
                 .build();

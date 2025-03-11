@@ -1,67 +1,110 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
-import LoginPage from './LoginPage';
-import ChatPage from './ChatPage';
-import LoginSuccess from "./LoginSuccess";
-import { useAuth } from './hooks/useAuth';
+// src/services/api.js
+import axios from 'axios';
 
-function OAuth2RedirectHandler() {
-  const location = useLocation();
-  const navigate = useNavigate();
+const API_BASE_URL = 'http://localhost:8080';
 
-  useEffect(() => {
-    console.log("🔗 현재 URL:", window.location.href);  // 👉 현재 URL 로그
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
+// 네트워크 상태 확인
+const checkConnection = () => {
+  return navigator.onLine;
+};
 
+// axios 인스턴스 생성
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 8000, // 8초 타임아웃
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// 요청 인터셉터
+axiosInstance.interceptors.request.use(
+  config => {
+    // 'token'으로 통일 (App.js와 일치)
+    const token = localStorage.getItem('token');
+    
     if (token) {
-      console.log("✅ 토큰 발견:", token);  // 👉 토큰이 정상적으로 넘어오는지 확인
-      localStorage.setItem('token', token);
-      navigate('/login-success');
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
-  }, [location]);
+    
+    // 네트워크 연결 확인
+    if (!checkConnection()) {
+      // 오프라인일 경우 요청 취소 (fallback 로직으로 넘어감)
+      return Promise.reject(new Error('Network is offline'));
+    }
+    
+    return config;
+  },
+  error => Promise.reject(error)
+);
 
-  return <div>🔄 로그인 중...</div>;
-}
+// 응답 인터셉터
+axiosInstance.interceptors.response.use(
+  response => {
+    // 응답 데이터만 반환
+    return response.data;
+  },
+  error => {
+    // 오류 로깅
+    console.error('API request error:', error);
+    
+    // 401 오류 처리 (인증 만료)
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+      return Promise.reject(new Error('Authentication token expired'));
+    }
+    
+    // 네트워크 오류 또는 서버 접속 불가 상태
+    if (!error.response || error.code === 'ECONNABORTED') {
+      // 전역 이벤트 발생 (앱에서 감지할 수 있음)
+      window.dispatchEvent(new CustomEvent('api:offline', { 
+        detail: { endpoint: error.config?.url }
+      }));
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
-function App() {
-  //const [user, setUser] = useState(null);
-  const { user, loading } = useAuth();
+// API 메서드
+export const api = {
+  get: async (endpoint, options = {}) => {
+    try {
+      return await axiosInstance.get(endpoint, options);
+    } catch (error) {
+      // 네트워크 오류 플래그 추가
+      error.isNetworkError = !error.response;
+      throw error;
+    }
+  },
+  
+  post: async (endpoint, data, options = {}) => {
+    try {
+      return await axiosInstance.post(endpoint, data, options);
+    } catch (error) {
+      error.isNetworkError = !error.response;
+      throw error;
+    }
+  },
+  
+  put: async (endpoint, data, options = {}) => {
+    try {
+      return await axiosInstance.put(endpoint, data, options);
+    } catch (error) {
+      error.isNetworkError = !error.response;
+      throw error;
+    }
+  },
+  
+  delete: async (endpoint, options = {}) => {
+    try {
+      return await axiosInstance.delete(endpoint, options);
+    } catch (error) {
+      error.isNetworkError = !error.response;
+      throw error;
+    }
+  },
+};
 
-  // useEffect(() => {
-  //   const token = localStorage.getItem('token');
-  //   if (token) {
-  //     fetch('http://localhost:8080/auth/me', {
-  //       method: "GET",
-  //       headers: {
-  //         "Authorization": `Bearer ${token}`,
-  //         "Content-Type": "application/json"
-  //       },
-  //       mode: "cors"  // 🔥 추가!
-  //     })
-  //       .then((res) => res.json())
-  //       .then((data) => setUser(data))
-  //       .catch(() => localStorage.removeItem('token'));
-  //   }
-  // }, []);
-
-  return (
-    <AppProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route 
-            path="/chat" 
-            element={user ? <ChatPage user={user} /> : <Navigate to="/login" replace />} 
-          />
-          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
-          <Route path="/login-success" element={<LoginSuccess />} />
-          <Route path="/" element={<Navigate to="/chat" replace />} />
-        </Routes>
-      </Router>
-    </AppProvider>
-  );
-}
-
-export default App;
+export default api;
