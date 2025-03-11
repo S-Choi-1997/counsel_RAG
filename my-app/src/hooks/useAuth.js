@@ -61,7 +61,7 @@ export const useAuth = () => {
 
   // 로그아웃 함수
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     setUser(null);
   };
 

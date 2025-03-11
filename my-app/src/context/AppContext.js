@@ -4,7 +4,13 @@ import { api } from '../services/api';
 import { getSyncStatus } from '../services/googleService';
 import { formatDateToString } from '../utils/dateUtils';
 import { 
+  createAppointment as apiCreateAppointment,
+  deleteAppointment as apiDeleteAppointment
+} from '../services/appointmentService';
+import { 
   mapAppointmentsFromAPI, 
+  mapAppointmentFromAPI,
+  mapAppointmentToAPI,
   mapStatisticsFromAPI,
   mapSyncStatusFromAPI 
 } from '../utils/dataMappers';
@@ -90,7 +96,17 @@ export const AppProvider = ({ children }) => {
       }
     };
 
-    fetchAppointments();
+    // 토큰이 있을 때만 API 호출하고 그렇지 않으면 더미 데이터 사용
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchAppointments();
+    } else {
+      console.log('인증되지 않은 상태: 더미 데이터 사용');
+      const dummyData = getDummyAppointmentsByDate(selectedDate);
+      setAppointments(dummyData);
+      setCurrentClientIndex(dummyData.length > 0 ? 0 : -1);
+      setLoading(false);
+    }
   }, [selectedDate]);
 
   // 통계 데이터 로드
@@ -208,6 +224,82 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // 예약 추가 함수
+  const addAppointment = async (newAppointmentData) => {
+    try {
+      // 낙관적 UI 업데이트 (임시 ID로 추가)
+      const tempId = `temp-${Date.now()}`;
+      const tempAppointment = { 
+        ...newAppointmentData, 
+        id: tempId,
+        status: 'PENDING' 
+      };
+      
+      setAppointments(prev => [...prev, tempAppointment]);
+      setCurrentClientIndex(appointments.length); // 새 고객 선택
+      
+      // 토큰 확인
+      const token = localStorage.getItem('token');
+      
+      if (token && isConnected) {
+        // API 호출을 통한 실제 데이터 저장
+        const apiData = mapAppointmentToAPI(newAppointmentData);
+        const response = await apiCreateAppointment(apiData);
+        const createdAppointment = mapAppointmentFromAPI(response);
+        
+        // 임시 항목을 실제 항목으로 대체
+        setAppointments(prev => prev.map(apt => 
+          apt.id === tempId ? createdAppointment : apt
+        ));
+        
+        return createdAppointment;
+      }
+      
+      return tempAppointment; // 오프라인 또는 인증 안 된 상태
+    } catch (err) {
+      console.error('예약 추가 실패:', err);
+      
+      // 실패 시 UI에서 제거 (선택적)
+      // setAppointments(prev => prev.filter(apt => apt.id !== `temp-${Date.now()}`));
+      
+      // 오류 발생 시에도 UI 업데이트는 유지 (더 나은 UX)
+      return null;
+    }
+  };
+
+  // 예약 삭제 함수
+  const deleteAppointment = async (appointmentId) => {
+    // 낙관적 UI 업데이트를 위해 삭제할 예약 정보 저장
+    const deletedAppointment = appointments.find(apt => apt.id === appointmentId);
+    
+    try {
+      // UI에서 먼저 제거
+      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+      
+      // 현재 선택된 고객이 삭제된 경우 다른 고객 선택
+      if (currentClientIndex >= appointments.length - 1) {
+        setCurrentClientIndex(Math.max(0, appointments.length - 2));
+      }
+      
+      // 인증 확인 및 API 호출
+      const token = localStorage.getItem('token');
+      if (token && isConnected && !appointmentId.startsWith('temp-')) {
+        await apiDeleteAppointment(appointmentId);
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('예약 삭제 실패:', err);
+      
+      // 오류 발생 시 롤백 (선택적)
+      if (deletedAppointment) {
+        setAppointments(prev => [...prev, deletedAppointment]);
+      }
+      
+      return false;
+    }
+  };
+
   const value = {
     currentDate,
     selectedDate,
@@ -226,6 +318,8 @@ export const AppProvider = ({ children }) => {
     getNoteStatusColor,
     getPaymentStatusColor,
     updateAppointment,
+    addAppointment,
+    deleteAppointment,
     setSyncState
   };
 

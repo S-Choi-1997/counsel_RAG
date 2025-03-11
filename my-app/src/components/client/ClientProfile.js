@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { getClientInfo, updateClientInfo } from '../../services/clientService';
 
 function ClientProfile({ client }) {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -13,6 +14,18 @@ function ClientProfile({ client }) {
   const [endTime, setEndTime] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [sessionCount, setSessionCount] = useState("0회차");
+  
+  // 클라이언트 데이터 상태 추가
+  const [clientData, setClientData] = useState({
+    age: "",
+    occupation: "",
+    goal: "",
+    note: ""
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   const { 
     getSessionTypeStyle, 
@@ -37,11 +50,48 @@ function ClientProfile({ client }) {
       setSessionDuration(client.sessionDuration || "20분");
       setStartTime(client.startTime || "");
       setEndTime(client.endTime || "");
+      setSessionCount(client.sessionCount || "0회차"); // 추가된 부분
       
       // 새 고객을 선택하면 편집 모드 종료
       setIsEditMode(false);
+      
+      // 클라이언트 상세 정보 로드
+      loadClientInfo(client.clientId);
     }
   }, [client]);
+
+  // 클라이언트 상세 정보 로드 함수
+  const loadClientInfo = async (clientId) => {
+    if (!clientId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await getClientInfo(clientId);
+      setClientData({
+        age: response.age || "",
+        occupation: response.occupation || "",
+        goal: response.goal || "",
+        note: response.note || ""
+      });
+    } catch (err) {
+      console.error('클라이언트 정보 로드 실패:', err);
+      setError('클라이언트 정보를 로드할 수 없습니다.');
+      
+      // 네트워크 오류시 더미 데이터 사용 (선택적)
+      if (err.isNetworkError) {
+        setClientData({
+          age: "30대",
+          occupation: "회사원",
+          goal: "직장 스트레스 관리",
+          note: "불면증 호소, 업무 과부하"
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 모든 정보 저장
   const handleSaveAll = async () => {
@@ -49,7 +99,7 @@ function ClientProfile({ client }) {
     
     setIsSaving(true);
     try {
-      // 모든 정보 업데이트
+      // 예약 정보 업데이트
       updateAppointment(client.id, {
         amount,
         isPaid,
@@ -58,8 +108,14 @@ function ClientProfile({ client }) {
         sessionType,
         sessionDuration,
         startTime,
-        endTime
+        endTime,
+        sessionCount
       });
+      
+      // 클라이언트 상세 정보 업데이트
+      if (client.clientId) {
+        await updateClientInfo(client.clientId, clientData);
+      }
       
       setSaveSuccess(true);
       
@@ -86,6 +142,14 @@ function ClientProfile({ client }) {
       // 일반 모드에서 편집 모드로 변경
       setIsEditMode(true);
     }
+  };
+
+  // 클라이언트 데이터 입력 변경 처리
+  const handleClientDataChange = (field, value) => {
+    setClientData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (!client) {
@@ -276,7 +340,81 @@ function ClientProfile({ client }) {
         </div>
         
         {/* 고객 데이터 */}
-        <ClientInfo isEditMode={isEditMode} />
+        <div className="bg-white p-3 rounded border border-gray-200 mb-3">
+          <p className="text-sm font-medium mb-2">고객 데이터</p>
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            </div>
+          ) : error ? (
+            <div className="text-red-500 text-sm">{error}</div>
+          ) : (
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="border-b">
+                  <td className="py-1 font-medium text-gray-500 w-1/4">연령대</td>
+                  <td className="py-1">
+                    {isEditMode ? (
+                      <input 
+                        type="text" 
+                        value={clientData.age} 
+                        onChange={(e) => handleClientDataChange('age', e.target.value)}
+                        className="w-full text-sm p-1 border rounded"
+                      />
+                    ) : (
+                      clientData.age
+                    )}
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-1 font-medium text-gray-500">직업</td>
+                  <td className="py-1">
+                    {isEditMode ? (
+                      <input 
+                        type="text" 
+                        value={clientData.occupation} 
+                        onChange={(e) => handleClientDataChange('occupation', e.target.value)}
+                        className="w-full text-sm p-1 border rounded"
+                      />
+                    ) : (
+                      clientData.occupation
+                    )}
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-1 font-medium text-gray-500">상담 목표</td>
+                  <td className="py-1">
+                    {isEditMode ? (
+                      <input 
+                        type="text" 
+                        value={clientData.goal} 
+                        onChange={(e) => handleClientDataChange('goal', e.target.value)}
+                        className="w-full text-sm p-1 border rounded"
+                      />
+                    ) : (
+                      clientData.goal
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 font-medium text-gray-500">특이사항</td>
+                  <td className="py-1">
+                    {isEditMode ? (
+                      <input 
+                        type="text" 
+                        value={clientData.note} 
+                        onChange={(e) => handleClientDataChange('note', e.target.value)}
+                        className="w-full text-sm p-1 border rounded"
+                      />
+                    ) : (
+                      clientData.note
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </div>
         
         {saveSuccess && (
           <div className="mt-2 bg-green-100 border border-green-300 text-green-700 px-3 py-2 rounded text-sm">
@@ -284,93 +422,6 @@ function ClientProfile({ client }) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// 고객 정보 컴포넌트
-function ClientInfo({ isEditMode }) {
-  const [clientData, setClientData] = useState({
-    age: "30대",
-    occupation: "회사원",
-    goal: "직장 스트레스 관리",
-    note: "불면증 호소, 업무 과부하"
-  });
-
-  const handleChange = (field, value) => {
-    setClientData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  return (
-    <div className="bg-white p-3 rounded border border-gray-200 mb-3">
-      <p className="text-sm font-medium mb-2">고객 데이터</p>
-      <table className="w-full text-sm">
-        <tbody>
-          <tr className="border-b">
-            <td className="py-1 font-medium text-gray-500 w-1/4">연령대</td>
-            <td className="py-1">
-              {isEditMode ? (
-                <input 
-                  type="text" 
-                  value={clientData.age} 
-                  onChange={(e) => handleChange('age', e.target.value)}
-                  className="w-full text-sm p-1 border rounded"
-                />
-              ) : (
-                clientData.age
-              )}
-            </td>
-          </tr>
-          <tr className="border-b">
-            <td className="py-1 font-medium text-gray-500">직업</td>
-            <td className="py-1">
-              {isEditMode ? (
-                <input 
-                  type="text" 
-                  value={clientData.occupation} 
-                  onChange={(e) => handleChange('occupation', e.target.value)}
-                  className="w-full text-sm p-1 border rounded"
-                />
-              ) : (
-                clientData.occupation
-              )}
-            </td>
-          </tr>
-          <tr className="border-b">
-            <td className="py-1 font-medium text-gray-500">상담 목표</td>
-            <td className="py-1">
-              {isEditMode ? (
-                <input 
-                  type="text" 
-                  value={clientData.goal} 
-                  onChange={(e) => handleChange('goal', e.target.value)}
-                  className="w-full text-sm p-1 border rounded"
-                />
-              ) : (
-                clientData.goal
-              )}
-            </td>
-          </tr>
-          <tr>
-            <td className="py-1 font-medium text-gray-500">특이사항</td>
-            <td className="py-1">
-              {isEditMode ? (
-                <input 
-                  type="text" 
-                  value={clientData.note} 
-                  onChange={(e) => handleChange('note', e.target.value)}
-                  className="w-full text-sm p-1 border rounded"
-                />
-              ) : (
-                clientData.note
-              )}
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   );
 }

@@ -34,3 +34,5 @@ google:
   cloud:
     credentials-location: ${GOOGLE_APPLICATION_CREDENTIALS}
     project-id: ${GOOGLE_CLOUD_PROJECT_ID}
+  application:
+    name: ${GOOGLE_APPLICATION_NAME:상담 관리 애플리케이션}

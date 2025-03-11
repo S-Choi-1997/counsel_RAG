@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @Slf4j
@@ -32,11 +32,17 @@ public class ChatbotController {
                 requestMessage.getContent()
         );
 
+        // LocalDateTime을 String으로 변환
+        String timestampStr = null;
+        if (response.getTimestamp() != null) {
+            timestampStr = response.getTimestamp().format(DateTimeFormatter.ISO_DATE_TIME);
+        }
+
         ChatMessageDTO responseDTO = ChatMessageDTO.builder()
                 .id(response.getId())
                 .content(response.getContent())
                 .sender(response.getSender())
-                .timestamp(response.getTimestamp())
+                .timestamp(timestampStr)  // String 타입의 timestamp 필드에 변환된 문자열 할당
                 .build();
 
         return ResponseEntity.ok(responseDTO);
