@@ -30,7 +30,24 @@ public class AppointmentController {
         log.info("GET /api/appointments - User: {}, Date: {}", userDetails.getEmail(), date);
         // 현재 로그인한 상담자의 ID로 예약 필터링
         String counselorId = userDetails.getId();
-        List<AppointmentDTO> appointments = appointmentService.getAppointmentsByCounselorAndDate(counselorId,date);
+        List<AppointmentDTO> appointments = appointmentService.getAppointmentsByCounselorAndDate(counselorId, date);
+        return ResponseEntity.ok(appointments);
+    }
+
+    // 추가: 월별 예약 조회 API
+    @GetMapping("/monthly")
+    public ResponseEntity<List<AppointmentDTO>> getMonthlyAppointments(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @CurrentUser CustomUserDetails userDetails) {
+
+        log.info("GET /api/appointments/monthly - User: {}, Period: {} to {}",
+                userDetails.getEmail(), startDate, endDate);
+
+        String counselorId = userDetails.getId();
+        List<AppointmentDTO> appointments = appointmentService.getMonthlyAppointmentsByCounselor(
+                counselorId, startDate, endDate);
+
         return ResponseEntity.ok(appointments);
     }
 

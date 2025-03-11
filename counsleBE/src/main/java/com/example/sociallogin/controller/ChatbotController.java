@@ -6,9 +6,14 @@ import com.example.sociallogin.security.CurrentUser;
 import com.example.sociallogin.security.CustomUserDetails;
 import com.example.sociallogin.service.ChatbotService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
@@ -21,6 +26,7 @@ public class ChatbotController {
             @RequestBody ChatMessageDTO requestMessage,
             @CurrentUser CustomUserDetails userDetails) {
 
+        log.info("Processing message from user: {}", userDetails.getEmail());
         ChatMessage response = chatbotService.processUserMessage(
                 userDetails.getId(),
                 requestMessage.getContent()
@@ -34,5 +40,34 @@ public class ChatbotController {
                 .build();
 
         return ResponseEntity.ok(responseDTO);
+    }
+
+    // 추가: 메모 요약 API
+    @PostMapping("/summarize")
+    public ResponseEntity<Map<String, String>> summarizeNote(
+            @RequestBody Map<String, String> request,
+            @CurrentUser CustomUserDetails userDetails) {
+
+        log.info("Summarizing note for user: {}", userDetails.getEmail());
+        String content = request.get("content");
+        String clientName = request.get("clientName");
+
+        String summary = chatbotService.summarizeNote(content, clientName);
+
+        return ResponseEntity.ok(Map.of("content", summary));
+    }
+
+    // 추가: 이전 세션 요약 API
+    @GetMapping("/sessions/{clientId}/summary")
+    public ResponseEntity<Map<String, String>> getPreviousSessionSummary(
+            @PathVariable String clientId,
+            @CurrentUser CustomUserDetails userDetails) {
+
+        log.info("Getting previous session summary for client: {}, requested by: {}",
+                clientId, userDetails.getEmail());
+
+        String summary = chatbotService.getPreviousSessionSummary(clientId);
+
+        return ResponseEntity.ok(Map.of("content", summary));
     }
 }

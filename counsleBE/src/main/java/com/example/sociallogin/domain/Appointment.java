@@ -27,4 +27,5 @@ public class Appointment {
     private String serviceType;
     private Date createdAt;
     private Date updatedAt;
+    private String googleCalendarEventId;
 }
