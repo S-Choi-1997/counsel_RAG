@@ -62,51 +62,61 @@ function ClientProfile({ client }) {
   }, [client]);
 
   // 클라이언트 상세 정보 로드 함수
-  const loadClientInfo = async (clientId) => {
-    if (!clientId) return;
+// ClientProfile.js의 loadClientInfo 함수 수정
+const loadClientInfo = async (clientId) => {
+  if (!clientId) return;
+  
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // 클라이언트 정보 로드
+    const response = await getClientInfo(clientId);
+    setClientData({
+      age: response.age || "",
+      occupation: response.occupation || "",
+      goal: response.goal || "",
+      note: response.note || ""
+    });
     
-    setLoading(true);
-    setError(null);
-    
+    // 상담 회차 정보 로드 - 이 부분이 중요합니다
     try {
-      // 클라이언트 정보 로드
-      const response = await getClientInfo(clientId);
-      setClientData({
-        age: response.age || "",
-        occupation: response.occupation || "",
-        goal: response.goal || "",
-        note: response.note || ""
-      });
+      // 정확한 API 엔드포인트로 수정
+      const count = await getSessionCount(clientId);
+      console.log(`클라이언트 ${clientId}의 상담 회차:`, count);
       
-      // 상담 회차 정보 로드
-      try {
-        const count = await getSessionCount(clientId);
+      // 회차가 숫자로 반환되면 문자열로 변환
+      if (typeof count === 'number') {
         setSessionCount(`${count}회차`);
-        console.log(`클라이언트 ${clientId}의 상담 회차: ${count}회차`);
-      } catch (countErr) {
-        console.error('상담 회차 로드 실패:', countErr);
-        // 오류 시 기본값 설정
-        setSessionCount("1회차");
+      } else if (count && count.sessionCount) {
+        // API가 { sessionCount: 숫자 } 형태로 반환하는 경우
+        setSessionCount(`${count.sessionCount}회차`);
+      } else {
+        setSessionCount("1회차"); // 기본값
       }
-      
-    } catch (err) {
-      console.error('클라이언트 정보 로드 실패:', err);
-      setError('클라이언트 정보를 로드할 수 없습니다.');
-      
-      // 네트워크 오류시 더미 데이터 사용 (선택적)
-      if (err.isNetworkError) {
-        setClientData({
-          age: "30대",
-          occupation: "회사원",
-          goal: "직장 스트레스 관리",
-          note: "불면증 호소, 업무 과부하"
-        });
-        setSessionCount("1회차");
-      }
-    } finally {
-      setLoading(false);
+    } catch (countErr) {
+      console.error('상담 회차 로드 실패:', countErr);
+      setSessionCount("1회차");
     }
-  };
+    
+  } catch (err) {
+    console.error('클라이언트 정보 로드 실패:', err);
+    setError('클라이언트 정보를 로드할 수 없습니다.');
+    
+    // 네트워크 오류시 더미 데이터 사용
+    if (err.isNetworkError) {
+      setClientData({
+        age: "30대",
+        occupation: "회사원",
+        goal: "직장 스트레스 관리",
+        note: "불면증 호소, 업무 과부하"
+      });
+      setSessionCount("1회차");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 모든 정보 저장
   const handleSaveAll = async () => {

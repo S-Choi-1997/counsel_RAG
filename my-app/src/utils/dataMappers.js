@@ -3,8 +3,18 @@
 // 백엔드 API 응답을 프론트엔드 형식으로 변환하는 매핑 함수들
 
 // 예약 데이터 매핑
-export const mapAppointmentFromAPI = (apiData) => {
+  export const mapAppointmentFromAPI = (apiData) => {
     if (!apiData) return null;
+    
+    // 백엔드 응답 로깅 추가 - 디버깅 용도
+    console.log('Mapping appointment data:', apiData);
+    
+    // 세션 타입 확인 - 더 상세한 로깅
+    const sessionTypeField = apiData.sessionType || apiData.serviceType; 
+    console.log('Session type field:', sessionTypeField);
+    
+    // 응답에 세션 타입이 없는 경우 기본값 제공
+    const defaultSessionType = "전화상담";
     
     return {
       id: apiData.id,
@@ -15,16 +25,17 @@ export const mapAppointmentFromAPI = (apiData) => {
       date: apiData.date,
       startTime: apiData.startTime,
       endTime: apiData.endTime,
-      // 백엔드가 sessionType 또는 serviceType으로 전송하는 경우 모두 처리
-      sessionType: apiData.sessionType || apiData.serviceType,
-      sessionDuration: apiData.sessionDuration,
+      // 타입을 더 명시적으로 처리하고 기본값 설정
+      sessionType: sessionTypeField || defaultSessionType,
+      // 원본 필드도 보존 (UI에서 필요한 경우를 위해)
+      serviceType: apiData.serviceType || defaultSessionType,
+      sessionDuration: apiData.sessionDuration || "20분",
       status: apiData.status,
       notes: apiData.notes,
       isCompleted: apiData.isCompleted ?? (apiData.status === 'COMPLETED'),
       isNoteCompleted: apiData.isNoteCompleted ?? false,
       isPaid: apiData.isPaid ?? false,
       amount: apiData.amount || '0',
-      // history 필드가 없을 경우 빈 문자열 사용
       history: apiData.history || ''
     };
   };

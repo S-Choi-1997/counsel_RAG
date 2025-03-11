@@ -27,13 +27,14 @@ function ChatPage() {
     goToNextMonth 
   } = useCalendar();
   
-  // useAppContext를 컴포넌트 최상위 레벨에서 한 번만 호출
+  // AppContext에서 필요한 함수와 상태 가져오기
   const { 
     appointments, 
     currentClient, 
     currentClientIndex, 
     selectClient,
-    stats
+    stats,
+    selectDate
   } = useAppContext();
   
   const { messages, input, setInput, handleSend: handleSendMessage, loading: chatLoading } = useChat();
@@ -56,6 +57,20 @@ function ChatPage() {
       navigate('/login');
     }
   }, [navigate]);
+  
+  // 날짜 선택과 해당 날짜의 예약 데이터 로드를 함께 처리하는 함수
+  const handleDateSelectAndFetch = (dateObj) => {
+    handleDateSelect(dateObj);  // 기존 캘린더 UI 업데이트
+    
+    // 선택된 날짜의 예약 데이터 로드
+    if (dateObj.date) {
+      selectDate(new Date(dateObj.date)); // AppContext의 selectDate 호출하여 예약 데이터 갱신
+    } else if (dateObj.day) {
+      // 이전 방식 호환성 유지 (day만 있는 경우)
+      const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dateObj.day);
+      selectDate(newDate);
+    }
+  };
 
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -76,7 +91,7 @@ function ChatPage() {
             currentDate={currentDate}
             selectedDate={selectedDate}
             calendarDays={calendarDays}
-            onDateSelect={handleDateSelect}
+            onDateSelect={handleDateSelectAndFetch} // 수정된 함수 사용
             goToPreviousMonth={goToPreviousMonth}
             goToNextMonth={goToNextMonth}
           />

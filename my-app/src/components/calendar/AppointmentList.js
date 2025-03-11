@@ -66,14 +66,15 @@ function AppointmentList({ selectedDate, appointments, currentClientIndex, onCli
                   </div>
                   <div>
                     <p className="font-medium text-sm">{apt.clientName}</p>
-                    <div className="flex space-x-1 mt-1">
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${getSessionTypeStyle(apt.sessionType)}`}>
-                        {apt.sessionType} {apt.sessionDuration}
-                      </span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${getPaymentStatusColor(apt.isPaid)}`}>
-                        {apt.isPaid ? "결제완료" : "미결제"}
-                      </span>
-                    </div>
+                      {/* AppointmentList.js에서 수정이 필요한 부분 */}
+                      <div className="flex space-x-1 mt-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${getSessionTypeStyle(apt.sessionType || apt.serviceType || "기본상담")}`}>
+                          {apt.sessionType || apt.serviceType || "기본상담"}
+                        </span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${getPaymentStatusColor(apt.isPaid)}`}>
+                          {apt.isPaid ? "결제완료" : "미결제"}
+                        </span>
+                      </div>
                   </div>
                 </div>
                 <div className="flex flex-col space-y-1">

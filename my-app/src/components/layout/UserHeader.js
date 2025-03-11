@@ -36,16 +36,19 @@ function UserHeader({ user, currentDate, appointmentsCount }) {
         </div>
       </div>
       
-      {currentClient && (
-        <div className="bg-blue-50 p-2 rounded-md mt-2 mb-2 border border-blue-100">
-          <div className="flex justify-between items-center">
+      {/* 현재 고객 정보 - 항상 동일한 높이 유지 */}
+      <div className="bg-blue-50 p-2 rounded-md mt-2 mb-2 border border-blue-100 h-12 flex items-center">
+        {currentClient ? (
+          <div className="flex justify-between items-center w-full">
             <p className="text-sm font-medium">현재 고객: <span className="text-blue-700">{currentClient.clientName}</span></p>
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-              {currentClient.type}
+              {currentClient.sessionType}
             </span>
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-gray-500 w-full text-center">선택된 고객이 없습니다</p>
+        )}
+      </div>
       
       {/* 동기화 상태 표시 추가 */}
       <div className="mt-1 border-t pt-2 border-gray-100">

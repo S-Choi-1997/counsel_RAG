@@ -43,11 +43,22 @@ export const updateClientInfo = async (clientId, clientData) => {
 };
 
 // 상담 회차 조회
+// src/services/clientService.js의 getSessionCount 함수 수정
 export const getSessionCount = async (clientId) => {
   try {
+    // API 엔드포인트 확인 - 정확한 엔드포인트 사용
     const response = await api.get(`/api/clients/${clientId}/session-count`);
-    console.log('Session count response:', response);
-    return response.sessionCount;
+    console.log('Session count API response:', response);
+    
+    // 응답 구조 확인 및 처리
+    if (response && typeof response.sessionCount === 'number') {
+      return response.sessionCount;
+    } else if (response && typeof response === 'number') {
+      return response;
+    } else {
+      console.warn('Unexpected session count response format:', response);
+      return 1; // 기본값
+    }
   } catch (error) {
     console.error('Error fetching session count:', error);
     

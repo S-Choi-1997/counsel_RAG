@@ -193,7 +193,14 @@ export const AppProvider = ({ children }) => {
   };
 
   // 상담 종류에 따른 색상 및 스타일 지정
+// 수정된 코드 (타입이 없을 경우에도 대비):
   const getSessionTypeStyle = (sessionType) => {
+    // sessionType이 없거나 빈 문자열인 경우 기본 스타일 반환
+    if (!sessionType) {
+      console.warn('Session type is undefined or empty');
+      return "bg-gray-100 text-gray-800";
+    }
+    
     switch(sessionType) {
       case "카톡상담": return "bg-yellow-100 text-yellow-800";
       case "전화상담": return "bg-pink-100 text-pink-800";

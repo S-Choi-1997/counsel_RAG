@@ -10,7 +10,8 @@ export const dummyAppointments = [
       startTime: "09:30", 
       endTime: "09:50",
       clientName: "김무이", 
-      sessionType: "카톡상담", 
+      sessionType: "카톡상담", // 세션 타입이 정의되어 있는지 확인
+      serviceType: "카톡상담", // 백업으로 serviceType도 추가
       sessionDuration: "20분",
       isCompleted: true, 
       isNoteCompleted: true,
@@ -25,7 +26,8 @@ export const dummyAppointments = [
       startTime: "11:00", 
       endTime: "11:30",
       clientName: "이지연", 
-      sessionType: "전화상담", 
+      sessionType: "전화상담", // 세션 타입이 정의되어 있는지 확인
+      serviceType: "전화상담", // 백업으로 serviceType도 추가
       sessionDuration: "30분",
       isCompleted: true, 
       isNoteCompleted: false,
