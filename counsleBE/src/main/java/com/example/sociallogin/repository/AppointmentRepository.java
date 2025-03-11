@@ -2,6 +2,7 @@ package com.example.sociallogin.repository;
 
 import com.example.sociallogin.domain.Appointment;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +74,9 @@ public class AppointmentRepository {
 
             List<Appointment> appointmentList = new ArrayList<>();
             for (DocumentSnapshot doc : querySnapshot.get().getDocuments()) {
-                Appointment appointment = doc.toObject(Appointment.class);
-                if (appointment != null) {
+                Map<String, Object> data = doc.getData();
+                if (data != null) {
+                    Appointment appointment = convertToAppointment(data, doc.getId());
                     appointmentList.add(appointment);
                 }
             }
@@ -96,8 +98,9 @@ public class AppointmentRepository {
 
             List<Appointment> appointmentList = new ArrayList<>();
             for (DocumentSnapshot doc : querySnapshot.get().getDocuments()) {
-                Appointment appointment = doc.toObject(Appointment.class);
-                if (appointment != null) {
+                Map<String, Object> data = doc.getData();
+                if (data != null) {
+                    Appointment appointment = convertToAppointment(data, doc.getId());
                     appointmentList.add(appointment);
                 }
             }
@@ -197,8 +200,24 @@ public class AppointmentRepository {
         appointment.setStatus((String) data.get("status"));
         appointment.setNotes((String) data.get("notes"));
         appointment.setServiceType((String) data.get("serviceType"));
-        appointment.setCreatedAt((Date) data.get("createdAt"));
-        appointment.setUpdatedAt((Date) data.get("updatedAt"));
+// 🔥 Timestamp → Date 변환 코드 추가
+        Object createdAtValue = data.get("createdAt");
+        if (createdAtValue instanceof Timestamp) {
+            appointment.setCreatedAt(((Timestamp) createdAtValue).toDate()); // ✅ Timestamp → Date 변환
+        } else if (createdAtValue instanceof Date) {
+            appointment.setCreatedAt((Date) createdAtValue);
+        } else {
+            appointment.setCreatedAt(null); // 기본값 설정
+        }
+
+        Object updatedAtValue = data.get("updatedAt");
+        if (updatedAtValue instanceof Timestamp) {
+            appointment.setUpdatedAt(((Timestamp) updatedAtValue).toDate()); // ✅ Timestamp → Date 변환
+        } else if (updatedAtValue instanceof Date) {
+            appointment.setUpdatedAt((Date) updatedAtValue);
+        } else {
+            appointment.setUpdatedAt(null); // 기본값 설정
+        }
         return appointment;
     }
 

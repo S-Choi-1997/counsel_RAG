@@ -2,11 +2,13 @@ package com.example.sociallogin.repository;
 
 import com.example.sociallogin.domain.Statistics;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -107,14 +109,32 @@ public class StatisticsRepository {
         statistics.setId(id);
         statistics.setCounselorId((String) data.get("counselorId"));
         statistics.setPeriod((String) data.get("period"));
+
+        // 날짜 변환 (String -> LocalDate)
         statistics.setStartDate(LocalDate.parse((String) data.get("startDate")));
         statistics.setEndDate(LocalDate.parse((String) data.get("endDate")));
+
+        // 숫자 변환 (Long -> Integer)
         statistics.setTotalClients(((Long) data.get("totalClients")).intValue());
         statistics.setNewClients(((Long) data.get("newClients")).intValue());
         statistics.setCompletedSessions(((Long) data.get("completedSessions")).intValue());
-        statistics.setRevenue((java.math.BigDecimal) data.get("revenue"));
+
+        // BigDecimal 변환 (String 또는 Number → BigDecimal)
+        Object revenueValue = data.get("revenue");
+        if (revenueValue instanceof BigDecimal) {
+            statistics.setRevenue((BigDecimal) revenueValue);
+        } else if (revenueValue instanceof Number) {
+            statistics.setRevenue(BigDecimal.valueOf(((Number) revenueValue).doubleValue()));
+        } else if (revenueValue instanceof String) {
+            statistics.setRevenue(new BigDecimal((String) revenueValue));
+        } else {
+            statistics.setRevenue(BigDecimal.ZERO); // 기본값 설정
+        }
+
+        // Double 변환 (그대로 캐스팅 가능)
         statistics.setRetentionRate((Double) data.get("retentionRate"));
 
+        // Map 변환
         @SuppressWarnings("unchecked")
         Map<String, Integer> sessionTypeBreakdown = (Map<String, Integer>) data.get("sessionTypeBreakdown");
         statistics.setSessionTypeBreakdown(sessionTypeBreakdown);
@@ -123,7 +143,17 @@ public class StatisticsRepository {
         Map<String, Integer> timeSlotDistribution = (Map<String, Integer>) data.get("timeSlotDistribution");
         statistics.setTimeSlotDistribution(timeSlotDistribution);
 
-        statistics.setGeneratedAt((Date) data.get("generatedAt"));
+        // Timestamp -> Date 변환
+        Object generatedAtValue = data.get("generatedAt");
+        if (generatedAtValue instanceof com.google.cloud.Timestamp) {
+            statistics.setGeneratedAt(((com.google.cloud.Timestamp) generatedAtValue).toDate()); // ✅ 올바른 변환
+        } else if (generatedAtValue instanceof Date) {
+            statistics.setGeneratedAt((Date) generatedAtValue);
+        } else {
+            statistics.setGeneratedAt(null); // 기본값 설정
+        }
+
         return statistics;
     }
+
 }
