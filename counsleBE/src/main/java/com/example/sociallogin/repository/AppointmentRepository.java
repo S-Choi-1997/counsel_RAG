@@ -174,7 +174,7 @@ public class AppointmentRepository {
         return map;
     }
 
-    // Map을 Appointment 객체로 변환 (Firestore 조회 결과)
+    // convertToAppointment 메서드 (기존 메서드 활용)
     private Appointment convertToAppointment(Map<String, Object> data, String id) {
         Appointment appointment = new Appointment();
         appointment.setId(id);
@@ -182,14 +182,49 @@ public class AppointmentRepository {
         appointment.setClientName((String) data.get("clientName"));
         appointment.setCounselorId((String) data.get("counselorId"));
         appointment.setCounselorName((String) data.get("counselorName"));
-        appointment.setDate(LocalDate.parse((String) data.get("date")));
-        appointment.setStartTime(LocalTime.parse((String) data.get("startTime")));
-        appointment.setEndTime(LocalTime.parse((String) data.get("endTime")));
+
+        // 날짜와 시간 변환 처리
+        if (data.get("date") != null) {
+            appointment.setDate(LocalDate.parse((String) data.get("date")));
+        }
+        if (data.get("startTime") != null) {
+            appointment.setStartTime(LocalTime.parse((String) data.get("startTime")));
+        }
+        if (data.get("endTime") != null) {
+            appointment.setEndTime(LocalTime.parse((String) data.get("endTime")));
+        }
+
         appointment.setStatus((String) data.get("status"));
         appointment.setNotes((String) data.get("notes"));
         appointment.setServiceType((String) data.get("serviceType"));
         appointment.setCreatedAt((Date) data.get("createdAt"));
         appointment.setUpdatedAt((Date) data.get("updatedAt"));
         return appointment;
+    }
+
+    // 추가된 메서드: 클라이언트 ID와 상태로 예약 조회
+    public List<Appointment> findByClientIdAndStatus(String clientId, String status) {
+        try {
+            CollectionReference appointmentsRef = firestore.collection(COLLECTION_NAME);
+            Query query = appointmentsRef
+                    .whereEqualTo("clientId", clientId)
+                    .whereEqualTo("status", status);
+
+            ApiFuture<QuerySnapshot> querySnapshot = query.get();
+
+            List<Appointment> appointments = new ArrayList<>();
+            for (DocumentSnapshot document : querySnapshot.get().getDocuments()) {
+                Map<String, Object> data = document.getData();
+                if (data != null) {
+                    Appointment appointment = convertToAppointment(data, document.getId());
+                    appointments.add(appointment);
+                }
+            }
+
+            return appointments;
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Error querying appointments by clientId and status: {}", e.getMessage());
+            throw new RuntimeException("Failed to query appointments", e);
+        }
     }
 }

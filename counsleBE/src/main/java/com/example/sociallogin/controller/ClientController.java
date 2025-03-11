@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/clients")
@@ -40,5 +42,16 @@ public class ClientController {
 
         ClientDTO updatedClient = clientService.updateClientInfo(clientDTO);
         return ResponseEntity.ok(updatedClient);
+    }
+
+    // 추가된 부분: 상담 회차 조회 API
+    @GetMapping("/{clientId}/session-count")
+    public ResponseEntity<Map<String, Integer>> getSessionCount(
+            @PathVariable String clientId,
+            @CurrentUser CustomUserDetails userDetails) {
+
+        log.info("클라이언트 상담 회차 조회 요청 - 상담사: {}, 클라이언트ID: {}", userDetails.getEmail(), clientId);
+        int count = clientService.getSessionCount(clientId);
+        return ResponseEntity.ok(Map.of("sessionCount", count));
     }
 }

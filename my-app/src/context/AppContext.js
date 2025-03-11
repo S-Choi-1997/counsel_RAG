@@ -69,37 +69,42 @@ export const AppProvider = ({ children }) => {
     };
   }, []);
 
-  // 선택된 날짜의 예약 정보 로드
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      setLoading(true);
-      try {
-        const formattedDate = formatDateToString(selectedDate);
-        const response = await api.get(`/api/appointments?date=${formattedDate}`);
-        const mappedData = mapAppointmentsFromAPI(response);
-        setAppointments(mappedData);
-        setCurrentClientIndex(mappedData.length > 0 ? 0 : -1);
-        setError(null);
-      } catch (err) {
-        console.error('예약 정보를 불러오는 중 오류가 발생했습니다.', err);
-        setError('예약 정보를 불러오는 중 오류가 발생했습니다.');
-        
-        // 네트워크 오류인 경우 더미 데이터 사용
-        if (err.isNetworkError) {
-          console.log('네트워크 오류로 더미 데이터 사용');
-          const dummyData = getDummyAppointmentsByDate(selectedDate);
-          setAppointments(dummyData);
-          setCurrentClientIndex(dummyData.length > 0 ? 0 : -1);
-        }
-      } finally {
-        setLoading(false);
+  // 선택된 날짜의 예약 정보 로드 함수
+  const fetchAppointmentsByDate = async (date) => {
+    setLoading(true);
+    try {
+      const formattedDate = formatDateToString(date);
+      console.log(`Fetching appointments for date: ${formattedDate}`);
+      
+      const response = await api.get(`/api/appointments?date=${formattedDate}`);
+      console.log('API response:', response);
+      
+      const mappedData = mapAppointmentsFromAPI(response);
+      setAppointments(mappedData);
+      setCurrentClientIndex(mappedData.length > 0 ? 0 : -1);
+      setError(null);
+    } catch (err) {
+      console.error('예약 정보를 불러오는 중 오류가 발생했습니다.', err);
+      setError('예약 정보를 불러오는 중 오류가 발생했습니다.');
+      
+      // 네트워크 오류인 경우 더미 데이터 사용
+      if (err.isNetworkError) {
+        console.log('네트워크 오류로 더미 데이터 사용');
+        const dummyData = getDummyAppointmentsByDate(date);
+        setAppointments(dummyData);
+        setCurrentClientIndex(dummyData.length > 0 ? 0 : -1);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // 토큰이 있을 때만 API 호출하고 그렇지 않으면 더미 데이터 사용
+  // 페이지 최초 로드 시 예약 정보 로드
+  useEffect(() => {
+    // 토큰이 있을 때만 API 호출
     const token = localStorage.getItem('token');
     if (token) {
-      fetchAppointments();
+      fetchAppointmentsByDate(selectedDate);
     } else {
       console.log('인증되지 않은 상태: 더미 데이터 사용');
       const dummyData = getDummyAppointmentsByDate(selectedDate);
@@ -107,7 +112,7 @@ export const AppProvider = ({ children }) => {
       setCurrentClientIndex(dummyData.length > 0 ? 0 : -1);
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, []); // 의존성 배열에 selectedDate 제거하여 최초 1회만 실행
 
   // 통계 데이터 로드
   useEffect(() => {
@@ -174,6 +179,17 @@ export const AppProvider = ({ children }) => {
   // 날짜 선택 함수
   const selectDate = (date) => {
     setSelectedDate(date);
+    
+    // 토큰이 있을 때만 API 호출
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchAppointmentsByDate(date);
+    } else {
+      console.log('인증되지 않은 상태: 더미 데이터 사용');
+      const dummyData = getDummyAppointmentsByDate(date);
+      setAppointments(dummyData);
+      setCurrentClientIndex(dummyData.length > 0 ? 0 : -1);
+    }
   };
 
   // 상담 종류에 따른 색상 및 스타일 지정
@@ -320,7 +336,8 @@ export const AppProvider = ({ children }) => {
     updateAppointment,
     addAppointment,
     deleteAppointment,
-    setSyncState
+    setSyncState,
+    fetchAppointmentsByDate
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

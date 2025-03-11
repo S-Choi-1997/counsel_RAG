@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { getClientInfo, updateClientInfo } from '../../services/clientService';
+import { getClientInfo, updateClientInfo, getSessionCount } from '../../services/clientService';
 
 function ClientProfile({ client }) {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -14,7 +14,6 @@ function ClientProfile({ client }) {
   const [endTime, setEndTime] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [sessionCount, setSessionCount] = useState("0회차");
   
   // 클라이언트 데이터 상태 추가
   const [clientData, setClientData] = useState({
@@ -23,6 +22,9 @@ function ClientProfile({ client }) {
     goal: "",
     note: ""
   });
+  
+  // 상담 회차 상태 추가
+  const [sessionCount, setSessionCount] = useState("1회차");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,7 +52,6 @@ function ClientProfile({ client }) {
       setSessionDuration(client.sessionDuration || "20분");
       setStartTime(client.startTime || "");
       setEndTime(client.endTime || "");
-      setSessionCount(client.sessionCount || "0회차"); // 추가된 부분
       
       // 새 고객을 선택하면 편집 모드 종료
       setIsEditMode(false);
@@ -68,6 +69,7 @@ function ClientProfile({ client }) {
     setError(null);
     
     try {
+      // 클라이언트 정보 로드
       const response = await getClientInfo(clientId);
       setClientData({
         age: response.age || "",
@@ -75,6 +77,18 @@ function ClientProfile({ client }) {
         goal: response.goal || "",
         note: response.note || ""
       });
+      
+      // 상담 회차 정보 로드
+      try {
+        const count = await getSessionCount(clientId);
+        setSessionCount(`${count}회차`);
+        console.log(`클라이언트 ${clientId}의 상담 회차: ${count}회차`);
+      } catch (countErr) {
+        console.error('상담 회차 로드 실패:', countErr);
+        // 오류 시 기본값 설정
+        setSessionCount("1회차");
+      }
+      
     } catch (err) {
       console.error('클라이언트 정보 로드 실패:', err);
       setError('클라이언트 정보를 로드할 수 없습니다.');
@@ -87,6 +101,7 @@ function ClientProfile({ client }) {
           goal: "직장 스트레스 관리",
           note: "불면증 호소, 업무 과부하"
         });
+        setSessionCount("1회차");
       }
     } finally {
       setLoading(false);
@@ -108,8 +123,8 @@ function ClientProfile({ client }) {
         sessionType,
         sessionDuration,
         startTime,
-        endTime,
-        sessionCount
+        endTime
+        // sessionCount는 읽기 전용이므로 저장하지 않음
       });
       
       // 클라이언트 상세 정보 업데이트
@@ -335,7 +350,7 @@ function ClientProfile({ client }) {
           </div>
           <div className="bg-white p-2 rounded border border-gray-200">
             <p className="text-xs font-medium text-gray-500">상담 회차</p>
-            <p className="font-medium">3회차</p>
+            <p className="font-medium">{sessionCount}</p>
           </div>
         </div>
         

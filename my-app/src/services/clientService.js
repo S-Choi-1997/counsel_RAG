@@ -41,3 +41,22 @@ export const updateClientInfo = async (clientId, clientData) => {
     throw error;
   }
 };
+
+// 상담 회차 조회
+export const getSessionCount = async (clientId) => {
+  try {
+    const response = await api.get(`/api/clients/${clientId}/session-count`);
+    console.log('Session count response:', response);
+    return response.sessionCount;
+  } catch (error) {
+    console.error('Error fetching session count:', error);
+    
+    // 네트워크 오류시 기본값 반환
+    if (error.isNetworkError) {
+      console.log('네트워크 오류, 기본 회차(1회차) 사용');
+      return 1;
+    }
+    
+    return 1; // 오류 발생 시 기본값 1 반환
+  }
+};
